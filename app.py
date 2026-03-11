@@ -16,7 +16,7 @@ SSL_MODE = "require"
 FUSO_BRASIL = ZoneInfo("America/Sao_Paulo")
 
 # URL base do seu app Streamlit (altere para o endereço real quando publicado)
-BASE_URL = "https://seuapp.streamlit.app"   # ← altere aqui
+BASE_URL = "https://formcadcontatolink.streamlit.app/"   # ← altere aqui
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 def get_conn():
