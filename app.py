@@ -24,10 +24,6 @@ def get_conn():
     )
 
 def salvar_cadastro(id_ref_proprio, url_indicacao, nome, cpf, sexo, email, whatsapp):
-    """
-    id_ref_proprio → ref único gerado para ESTA pessoa (aparece no link dela)
-    url_indicacao  → ref de quem a indicou (vazio se veio direto)
-    """
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("""
@@ -52,66 +48,319 @@ def formatar_cpf(cpf: str) -> str:
 def formatar_whatsapp(w: str) -> str:
     return ''.join(filter(str.isdigit, w))
 
+# ── Page config ───────────────────────────────────────────────────────────────
+st.set_page_config(page_title="Cadastro", page_icon="📋", layout="centered")
+
 # ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap');
-html, body, [class*="css"] { font-family: 'Sora', sans-serif; }
-.stApp { background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); min-height: 100vh; }
-section[data-testid="stSidebar"] { display: none; }
-.card {
-    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 20px; padding: 2.5rem 2rem; backdrop-filter: blur(12px);
-    box-shadow: 0 8px 40px rgba(0,0,0,0.4); max-width: 560px; margin: 2rem auto;
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+* { box-sizing: border-box; }
+
+html, body, [class*="css"], .stApp {
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    background-color: #f0f4f8 !important;
 }
-.titulo { font-family: 'Space Mono', monospace; font-size: 1.7rem; font-weight: 700; color: #fff; text-align: center; letter-spacing: -1px; margin-bottom: 0.3rem; }
-.subtitulo { color: rgba(255,255,255,0.5); text-align: center; font-size: 0.88rem; margin-bottom: 2rem; }
-.ref-badge { background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.5); border-radius: 8px; padding: 0.6rem 1rem; font-family: 'Space Mono', monospace; font-size: 0.78rem; color: #a5b4fc; text-align: center; margin-bottom: 1.5rem; word-break: break-all; }
-.link-box { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.4); border-radius: 12px; padding: 1.2rem; margin: 1rem 0; }
-.link-titulo { color: #6ee7b7; font-size: 0.8rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 0.5rem; }
-.link-url { font-family: 'Space Mono', monospace; font-size: 0.82rem; color: #fff; word-break: break-all; line-height: 1.5; }
-.sucesso { color: #6ee7b7; text-align: center; font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem; }
-label, .stTextInput label, .stSelectbox label { color: rgba(255,255,255,0.75) !important; font-size: 0.85rem !important; }
-input, .stTextInput input { background: rgba(255,255,255,0.07) !important; border: 1px solid rgba(255,255,255,0.15) !important; border-radius: 10px !important; color: #fff !important; }
-div[data-baseweb="select"] > div { background: rgba(255,255,255,0.07) !important; border: 1px solid rgba(255,255,255,0.15) !important; border-radius: 10px !important; color: #fff !important; }
-.stButton > button { width: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6) !important; color: #fff !important; border: none !important; border-radius: 12px !important; padding: 0.7rem 1.5rem !important; font-family: 'Sora', sans-serif !important; font-weight: 600 !important; font-size: 0.95rem !important; transition: opacity 0.2s !important; }
-.stButton > button:hover { opacity: 0.85 !important; }
-.wpp-btn { display: inline-block; background: #25D366; color: #fff !important; text-decoration: none !important; padding: 0.65rem 1.4rem; border-radius: 12px; font-weight: 600; font-size: 0.9rem; text-align: center; width: 100%; box-sizing: border-box; margin-top: 0.5rem; }
-.wpp-btn:hover { background: #1ebe57; }
-hr { border-color: rgba(255,255,255,0.1); margin: 1.5rem 0; }
+
+section[data-testid="stSidebar"]       { display: none !important; }
+header[data-testid="stHeader"]         { display: none !important; }
+div[data-testid="stToolbar"]           { display: none !important; }
+div[data-testid="stDecoration"]        { display: none !important; }
+footer                                 { display: none !important; }
+
+/* ── Wrapper central ── */
+.main-wrapper {
+    max-width: 580px;
+    margin: 2rem auto 4rem auto;
+}
+
+/* ── Hero header ── */
+.hero {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);
+    border-radius: 20px 20px 0 0;
+    padding: 2.8rem 2.5rem 2.2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 180px; height: 180px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 50%;
+}
+
+.hero::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: -30px;
+    width: 220px; height: 220px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%;
+}
+
+.hero-icon {
+    font-size: 2.8rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.hero-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0 0 0.4rem 0;
+    letter-spacing: -0.5px;
+}
+
+.hero-sub {
+    font-size: 0.92rem;
+    color: rgba(255,255,255,0.75);
+    margin: 0;
+    font-weight: 400;
+}
+
+/* ── Card body ── */
+.form-body {
+    background: #ffffff;
+    border-radius: 0 0 20px 20px;
+    padding: 2.2rem 2.5rem 2.5rem;
+    box-shadow: 0 10px 40px rgba(79,70,229,0.10);
+}
+
+/* ── Badge indicação ── */
+.badge-indicacao {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+    margin-bottom: 1.6rem;
+    font-size: 0.8rem;
+    color: #4338ca;
+    font-weight: 500;
+    word-break: break-all;
+}
+
+.badge-indicacao span.dot {
+    width: 8px; height: 8px;
+    background: #6366f1;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* ── Divisor de seção ── */
+.section-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin: 1.6rem 0 1rem 0;
+}
+
+/* ── Labels ── */
+label, .stTextInput label, .stSelectbox label {
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    color: #374151 !important;
+    margin-bottom: 4px !important;
+}
+
+/* ── Inputs ── */
+input, .stTextInput input {
+    background: #f8fafc !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    color: #1e293b !important;
+    font-size: 0.92rem !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    padding: 0.65rem 0.9rem !important;
+    transition: border-color 0.2s !important;
+}
+
+input:focus, .stTextInput input:focus {
+    border-color: #6366f1 !important;
+    background: #fff !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.12) !important;
+}
+
+/* ── Select ── */
+div[data-baseweb="select"] > div {
+    background: #f8fafc !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    color: #1e293b !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+/* ── Botão principal ── */
+.stButton > button {
+    width: 100% !important;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 0.8rem 1.5rem !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 1rem !important;
+    letter-spacing: 0.2px !important;
+    transition: all 0.2s !important;
+    box-shadow: 0 4px 14px rgba(99,102,241,0.35) !important;
+    margin-top: 0.5rem !important;
+}
+
+.stButton > button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(99,102,241,0.45) !important;
+}
+
+/* ── Tela de sucesso ── */
+.success-header {
+    text-align: center;
+    padding: 1.5rem 0 1rem;
+}
+
+.success-icon {
+    font-size: 3.5rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.success-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0 0 0.3rem 0;
+}
+
+.success-sub {
+    font-size: 0.88rem;
+    color: #64748b;
+    margin: 0;
+}
+
+.divider {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 1.5rem 0;
+}
+
+.link-section-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 0.6rem;
+}
+
+.link-card {
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 0.8rem;
+}
+
+.link-card-url {
+    font-size: 0.83rem;
+    color: #4f46e5;
+    font-weight: 600;
+    word-break: break-all;
+    line-height: 1.5;
+}
+
+.wpp-btn {
+    display: block;
+    background: #22c55e;
+    color: #fff !important;
+    text-decoration: none !important;
+    padding: 0.8rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-align: center;
+    width: 100%;
+    box-shadow: 0 4px 14px rgba(34,197,94,0.3);
+    transition: all 0.2s;
+}
+
+.wpp-btn:hover {
+    background: #16a34a;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(34,197,94,0.4);
+}
+
+.footer-note {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #cbd5e1;
+    margin-top: 1.5rem;
+}
 </style>
 """, unsafe_allow_html=True)
 
-# ── Lê ?ref= da URL (ref de quem enviou o link) ───────────────────────────────
+# ── Lê ?ref= da URL ───────────────────────────────────────────────────────────
 params        = st.query_params
-ref_indicador = params.get("ref", None)  # ref de quem me indicou
-
-# ── Layout ────────────────────────────────────────────────────────────────────
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.markdown('<div class="titulo">📋 Cadastro</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitulo">Preencha seus dados para se cadastrar</div>', unsafe_allow_html=True)
-
-if ref_indicador:
-    st.markdown(
-        f'<div class="ref-badge">🔗 Indicado por: {BASE_URL}?ref={ref_indicador}</div>',
-        unsafe_allow_html=True
-    )
+ref_indicador = params.get("ref", None)
 
 # ── Estado da sessão ──────────────────────────────────────────────────────────
 if "cadastrado"   not in st.session_state: st.session_state.cadastrado   = False
 if "link_proprio" not in st.session_state: st.session_state.link_proprio = ""
 
-# ── Formulário ────────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# FORMULÁRIO
+# ══════════════════════════════════════════════════════════════════════════════
 if not st.session_state.cadastrado:
-    nome     = st.text_input("Nome completo")
+
+    st.markdown('<div class="main-wrapper">', unsafe_allow_html=True)
+
+    # Hero
+    st.markdown("""
+    <div class="hero">
+        <span class="hero-icon">📋</span>
+        <p class="hero-title">Cadastro</p>
+        <p class="hero-sub">Preencha seus dados para se cadastrar</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Body
+    st.markdown('<div class="form-body">', unsafe_allow_html=True)
+
+    # Badge indicação
+    if ref_indicador:
+        st.markdown(f"""
+        <div class="badge-indicacao">
+            <span class="dot"></span>
+            Indicado por: {BASE_URL}?ref={ref_indicador}
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown('<div class="section-label">Dados pessoais</div>', unsafe_allow_html=True)
+
+    nome     = st.text_input("Nome completo", placeholder="Digite seu nome completo")
     cpf      = st.text_input("CPF", placeholder="000.000.000-00")
-    sexo     = st.selectbox("Sexo", ["", "Masculino", "Feminino", "Prefiro não informar"])
-    email    = st.text_input("E-mail")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        sexo = st.selectbox("Sexo", ["", "Masculino", "Feminino", "Prefiro não informar"])
+
+    st.markdown('<div class="section-label">Contato</div>', unsafe_allow_html=True)
+
+    email    = st.text_input("E-mail", placeholder="seu@email.com")
     whatsapp = st.text_input("WhatsApp", placeholder="(11) 91234-5678")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    if st.button("✅ Enviar cadastro"):
+    if st.button("Enviar cadastro →"):
         erros = []
         if not nome.strip():     erros.append("Nome é obrigatório.")
         if not cpf.strip():      erros.append("CPF é obrigatório.")
@@ -124,13 +373,12 @@ if not st.session_state.cadastrado:
                 st.error(e)
         else:
             try:
-                # Ref único gerado para ESTA pessoa — é o código do link dela
                 novo_ref  = str(uuid.uuid4())[:8]
                 novo_link = f"{BASE_URL}?ref={novo_ref}"
 
                 salvar_cadastro(
-                    id_ref_proprio = novo_ref,           # ref desta pessoa → vai no link dela
-                    url_indicacao  = ref_indicador or "",# ref de quem a indicou (ou vazio)
+                    id_ref_proprio = novo_ref,
+                    url_indicacao  = ref_indicador or "",
                     nome           = nome.strip(),
                     cpf            = formatar_cpf(cpf),
                     sexo           = sexo,
@@ -144,36 +392,50 @@ if not st.session_state.cadastrado:
             except Exception as e:
                 st.error(f"Erro ao salvar: {e}")
 
-# ── Tela pós-cadastro ─────────────────────────────────────────────────────────
+    st.markdown('<p class="footer-note">Seus dados estão protegidos e não serão compartilhados.</p>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)  # form-body
+    st.markdown('</div>', unsafe_allow_html=True)  # main-wrapper
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TELA PÓS-CADASTRO
+# ══════════════════════════════════════════════════════════════════════════════
 else:
     link    = st.session_state.link_proprio
     msg_wpp = quote(f"Olá! Me cadastrei e quero te indicar. Acesse pelo meu link: {link}")
     wpp_url = f"https://wa.me/?text={msg_wpp}"
 
-    st.markdown('<div class="sucesso">🎉 Cadastro realizado com sucesso!</div>', unsafe_allow_html=True)
-    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown('<div class="main-wrapper">', unsafe_allow_html=True)
+
+    # Hero verde
     st.markdown("""
-        <div class="link-titulo">🔗 Seu link de indicação</div>
-        <p style="color:rgba(255,255,255,0.55);font-size:0.82rem;margin-bottom:0.8rem;">
-            Compartilhe este link. Quando alguém se cadastrar por ele, você será identificado como indicador.
-        </p>
+    <div class="hero" style="background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);">
+        <span class="hero-icon">🎉</span>
+        <p class="hero-title">Cadastro realizado!</p>
+        <p class="hero-sub">Seu cadastro foi salvo com sucesso</p>
+    </div>
     """, unsafe_allow_html=True)
-    st.markdown(
-        f'<div class="link-box">'
-        f'<div class="link-titulo">Link</div>'
-        f'<div class="link-url">{link}</div>'
-        f'</div>',
-        unsafe_allow_html=True
-    )
+
+    st.markdown('<div class="form-body">', unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="link-section-label">🔗 Seu link de indicação</div>
+    <p style="font-size:0.85rem;color:#64748b;margin:0 0 0.8rem 0;">
+        Compartilhe este link. Quem se cadastrar por ele será vinculado a você.
+    </p>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f'<div class="link-card"><div class="link-card-url">{link}</div></div>', unsafe_allow_html=True)
+
     st.code(link, language=None)
-    st.markdown(
-        f'<a class="wpp-btn" href="{wpp_url}" target="_blank">📲 Compartilhar no WhatsApp</a>',
-        unsafe_allow_html=True
-    )
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🔄 Novo cadastro"):
+
+    st.markdown(f'<a class="wpp-btn" href="{wpp_url}" target="_blank">📲 &nbsp; Compartilhar no WhatsApp</a>', unsafe_allow_html=True)
+
+    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+
+    if st.button("← Novo cadastro"):
         st.session_state.cadastrado   = False
         st.session_state.link_proprio = ""
         st.rerun()
 
-st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
