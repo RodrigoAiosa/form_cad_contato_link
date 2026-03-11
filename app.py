@@ -189,6 +189,30 @@ input:focus, .stTextInput input:focus {
     border-color: #6366f1 !important;
     background: #fff !important;
     box-shadow: 0 0 0 3px rgba(99,102,241,0.12) !important;
+    caret-color: #6366f1 !important;
+    outline: none !important;
+}
+
+/* Highlight do campo ativo */
+.stTextInput:focus-within {
+    position: relative;
+}
+
+.stTextInput:focus-within label {
+    color: #4f46e5 !important;
+}
+
+.stTextInput:focus-within input {
+    border-color: #6366f1 !important;
+    background: #fff !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.12) !important;
+}
+
+/* Select ativo */
+div[data-baseweb="select"]:focus-within > div {
+    border-color: #6366f1 !important;
+    background: #fff !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.12) !important;
 }
 
 /* ── Select ── */
