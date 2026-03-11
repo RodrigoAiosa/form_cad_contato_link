@@ -1,3 +1,4 @@
+import re
 import streamlit as st
 import psycopg2
 import uuid
@@ -47,6 +48,36 @@ def formatar_cpf(cpf: str) -> str:
 
 def formatar_whatsapp(w: str) -> str:
     return ''.join(filter(str.isdigit, w))
+
+def validar_cpf(cpf: str) -> bool:
+    """Valida CPF com dígitos verificadores."""
+    nums = ''.join(filter(str.isdigit, cpf))
+    if len(nums) != 11 or nums == nums[0] * 11:
+        return False
+    # 1º dígito
+    soma = sum(int(nums[i]) * (10 - i) for i in range(9))
+    d1 = (soma * 10 % 11) % 10
+    if d1 != int(nums[9]):
+        return False
+    # 2º dígito
+    soma = sum(int(nums[i]) * (11 - i) for i in range(10))
+    d2 = (soma * 10 % 11) % 10
+    return d2 == int(nums[10])
+
+def validar_email(email: str) -> bool:
+    """Valida formato de e-mail."""
+    padrao = r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(padrao, email.strip()))
+
+def validar_whatsapp(w: str) -> bool:
+    """Valida WhatsApp brasileiro: DDD (2 dígitos) + número (8 ou 9 dígitos)."""
+    nums = ''.join(filter(str.isdigit, w))
+    # Aceita com ou sem código do país (55)
+    if len(nums) == 13 and nums.startswith('55'):
+        nums = nums[2:]
+    if len(nums) == 12 and nums.startswith('55'):
+        nums = nums[2:]
+    return bool(re.match(r'^[1-9]{2}9?\d{8}$', nums))
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Cadastro", page_icon="📋", layout="centered")
@@ -386,11 +417,22 @@ if not st.session_state.cadastrado:
 
     if st.button("Enviar cadastro →"):
         erros = []
-        if not nome.strip():     erros.append("Nome é obrigatório.")
-        if not cpf.strip():      erros.append("CPF é obrigatório.")
-        if not sexo:             erros.append("Selecione o sexo.")
-        if not email.strip():    erros.append("E-mail é obrigatório.")
-        if not whatsapp.strip(): erros.append("WhatsApp é obrigatório.")
+        if not nome.strip():
+            erros.append("⚠️ Nome é obrigatório.")
+        if not cpf.strip():
+            erros.append("⚠️ CPF é obrigatório.")
+        elif not validar_cpf(cpf):
+            erros.append("❌ CPF inválido. Verifique os dígitos informados.")
+        if not sexo:
+            erros.append("⚠️ Selecione o sexo.")
+        if not email.strip():
+            erros.append("⚠️ E-mail é obrigatório.")
+        elif not validar_email(email):
+            erros.append("❌ E-mail inválido. Use o formato: nome@dominio.com")
+        if not whatsapp.strip():
+            erros.append("⚠️ WhatsApp é obrigatório.")
+        elif not validar_whatsapp(whatsapp):
+            erros.append("❌ WhatsApp inválido. Use DDD + número (ex: 11 91234-5678)")
 
         if erros:
             for e in erros:
