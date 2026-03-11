@@ -5,7 +5,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from urllib.parse import quote
 
-# ── Config ──────────────────────────────────────────────────────────────────
+# ── Config ────────────────────────────────────────────────────────────────────
 HOST     = "pg-2e2874e2-rodrigoaiosa-skydatasoluction.l.aivencloud.com"
 PORT     = "13191"
 DATABASE = "BD_SKYDATA"
@@ -23,15 +23,15 @@ def get_conn():
         user=USER, password=PASSWORD, sslmode=SSL_MODE
     )
 
-def salvar_cadastro(url_indicacao, nome, cpf, sexo, email, whatsapp):
+def salvar_cadastro(url_indicacao, id_ref_proprio, nome, cpf, sexo, email, whatsapp):
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO cad_contato_indicacao
-            (url_indicacao, nome, cpf, sexo, email, whatsapp, data_hora_cadastro)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+            (url_indicacao, id_ref_proprio, nome, cpf, sexo, email, whatsapp, data_hora_cadastro)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """, (
-        url_indicacao, nome, cpf, sexo, email, whatsapp,
+        url_indicacao, id_ref_proprio, nome, cpf, sexo, email, whatsapp,
         datetime.now(FUSO_BRASIL)
     ))
     conn.commit()
@@ -99,19 +99,6 @@ section[data-testid="stSidebar"] { display: none; }
     color: #a5b4fc;
     text-align: center;
     margin-bottom: 1.5rem;
-    word-break: break-all;
-}
-
-.info-salvo {
-    background: rgba(99,102,241,0.1);
-    border-left: 3px solid #6366f1;
-    border-radius: 6px;
-    padding: 0.5rem 0.8rem;
-    font-size: 0.75rem;
-    color: rgba(255,255,255,0.45);
-    margin-top: 0.3rem;
-    margin-bottom: 1.2rem;
-    font-family: 'Space Mono', monospace;
     word-break: break-all;
 }
 
@@ -204,10 +191,10 @@ hr { border-color: rgba(255,255,255,0.1); margin: 1.5rem 0; }
 """, unsafe_allow_html=True)
 
 # ── Lê parâmetros da URL ──────────────────────────────────────────────────────
-params  = st.query_params
-ref_id  = params.get("ref", None)
+params = st.query_params
+ref_id = params.get("ref", None)   # ref de quem indicou (vem na URL)
 
-# URL EXATA que foi recebida/compartilhada — é isso que será salvo no banco
+# URL exata recebida — será salva em url_indicacao
 url_indicacao_recebida = f"{BASE_URL}?ref={ref_id}" if ref_id else ""
 
 # ── Layout ────────────────────────────────────────────────────────────────────
@@ -215,17 +202,16 @@ st.markdown('<div class="card">', unsafe_allow_html=True)
 st.markdown('<div class="titulo">📋 Cadastro</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">Preencha seus dados para se cadastrar</div>', unsafe_allow_html=True)
 
-# Badge de indicação + info do que será salvo
 if url_indicacao_recebida:
     st.markdown(
-        f'<div class="ref-badge">🔗 Indicado por: {url_indicacao_recebida}</div>'
-        f'<div class="info-salvo">💾 Será salvo em url_indicacao: {url_indicacao_recebida}</div>',
+        f'<div class="ref-badge">🔗 Indicado por: {url_indicacao_recebida}</div>',
         unsafe_allow_html=True
     )
 
 # ── Estado da sessão ──────────────────────────────────────────────────────────
-if "cadastrado"    not in st.session_state: st.session_state.cadastrado    = False
-if "link_proprio"  not in st.session_state: st.session_state.link_proprio  = ""
+if "cadastrado"   not in st.session_state: st.session_state.cadastrado   = False
+if "link_proprio" not in st.session_state: st.session_state.link_proprio = ""
+if "ref_proprio"  not in st.session_state: st.session_state.ref_proprio  = ""
 
 # ── Formulário ────────────────────────────────────────────────────────────────
 if not st.session_state.cadastrado:
@@ -250,18 +236,22 @@ if not st.session_state.cadastrado:
                 st.error(e)
         else:
             try:
-                # Salva a URL exata recebida (ou vazio se não veio por indicação)
+                # Gera o ref único desta pessoa para compartilhar
+                novo_ref = str(uuid.uuid4())[:8]
+                novo_link = f"{BASE_URL}?ref={novo_ref}"
+
                 salvar_cadastro(
-                    url_indicacao = url_indicacao_recebida,
-                    nome          = nome.strip(),
-                    cpf           = formatar_cpf(cpf),
-                    sexo          = sexo,
-                    email         = email.strip(),
-                    whatsapp      = formatar_whatsapp(whatsapp)
+                    url_indicacao  = url_indicacao_recebida,   # quem me indicou
+                    id_ref_proprio = novo_ref,                  # meu ref único
+                    nome           = nome.strip(),
+                    cpf            = formatar_cpf(cpf),
+                    sexo           = sexo,
+                    email          = email.strip(),
+                    whatsapp       = formatar_whatsapp(whatsapp)
                 )
-                # Gera link único para esta pessoa compartilhar
-                novo_id = str(uuid.uuid4())[:8]
-                st.session_state.link_proprio = f"{BASE_URL}?ref={novo_id}"
+
+                st.session_state.link_proprio = novo_link
+                st.session_state.ref_proprio  = novo_ref
                 st.session_state.cadastrado   = True
                 st.rerun()
             except Exception as e:
@@ -278,8 +268,7 @@ else:
     st.markdown("""
         <div class="link-titulo">🔗 Seu link de indicação</div>
         <p style="color:rgba(255,255,255,0.55);font-size:0.82rem;margin-bottom:0.8rem;">
-            Compartilhe este link. Quando alguém se cadastrar por ele,
-            o seu link será salvo como <strong style="color:#a5b4fc">url_indicacao</strong> no banco.
+            Compartilhe este link. Quando alguém se cadastrar por ele, você será identificado como indicador.
         </p>
     """, unsafe_allow_html=True)
     st.markdown(
@@ -298,6 +287,7 @@ else:
     if st.button("🔄 Novo cadastro"):
         st.session_state.cadastrado   = False
         st.session_state.link_proprio = ""
+        st.session_state.ref_proprio  = ""
         st.rerun()
 
 st.markdown('</div>', unsafe_allow_html=True)
