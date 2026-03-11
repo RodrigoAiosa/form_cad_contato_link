@@ -14,11 +14,9 @@ PASSWORD = "AVNS_LlZukuJoh_0Kbj0dhvK"
 SSL_MODE = "require"
 
 FUSO_BRASIL = ZoneInfo("America/Sao_Paulo")
+BASE_URL    = "https://formcadcontatolink.streamlit.app/"
 
-# URL base do seu app Streamlit (altere para o endereço real quando publicado)
-BASE_URL = "https://formcadcontatolink.streamlit.app/"   # ← altere aqui
-
-# ── Helpers ──────────────────────────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────────────
 def get_conn():
     return psycopg2.connect(
         host=HOST, port=PORT, database=DATABASE,
@@ -47,17 +45,14 @@ def formatar_cpf(cpf: str) -> str:
     return cpf
 
 def formatar_whatsapp(w: str) -> str:
-    digits = ''.join(filter(str.isdigit, w))
-    return digits
+    return ''.join(filter(str.isdigit, w))
 
-# ── CSS ──────────────────────────────────────────────────────────────────────
+# ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=Space+Mono:wght@400;700&display=swap');
 
-html, body, [class*="css"] {
-    font-family: 'Sora', sans-serif;
-}
+html, body, [class*="css"] { font-family: 'Sora', sans-serif; }
 
 .stApp {
     background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
@@ -104,6 +99,19 @@ section[data-testid="stSidebar"] { display: none; }
     color: #a5b4fc;
     text-align: center;
     margin-bottom: 1.5rem;
+    word-break: break-all;
+}
+
+.info-salvo {
+    background: rgba(99,102,241,0.1);
+    border-left: 3px solid #6366f1;
+    border-radius: 6px;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.45);
+    margin-top: 0.3rem;
+    margin-bottom: 1.2rem;
+    font-family: 'Space Mono', monospace;
     word-break: break-all;
 }
 
@@ -169,7 +177,6 @@ div[data-baseweb="select"] > div {
     font-family: 'Sora', sans-serif !important;
     font-weight: 600 !important;
     font-size: 0.95rem !important;
-    letter-spacing: 0.3px !important;
     transition: opacity 0.2s !important;
 }
 
@@ -197,24 +204,28 @@ hr { border-color: rgba(255,255,255,0.1); margin: 1.5rem 0; }
 """, unsafe_allow_html=True)
 
 # ── Lê parâmetros da URL ──────────────────────────────────────────────────────
-params = st.query_params
-ref_id  = params.get("ref", None)   # id único de quem indicou
-ref_url = f"{BASE_URL}?ref={ref_id}" if ref_id else None
+params  = st.query_params
+ref_id  = params.get("ref", None)
+
+# URL EXATA que foi recebida/compartilhada — é isso que será salvo no banco
+url_indicacao_recebida = f"{BASE_URL}?ref={ref_id}" if ref_id else ""
 
 # ── Layout ────────────────────────────────────────────────────────────────────
 st.markdown('<div class="card">', unsafe_allow_html=True)
 st.markdown('<div class="titulo">📋 Cadastro</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">Preencha seus dados para se cadastrar</div>', unsafe_allow_html=True)
 
-# Mostra badge se veio por indicação
-if ref_url:
-    st.markdown(f'<div class="ref-badge">🔗 Indicado por: {ref_url}</div>', unsafe_allow_html=True)
+# Badge de indicação + info do que será salvo
+if url_indicacao_recebida:
+    st.markdown(
+        f'<div class="ref-badge">🔗 Indicado por: {url_indicacao_recebida}</div>'
+        f'<div class="info-salvo">💾 Será salvo em url_indicacao: {url_indicacao_recebida}</div>',
+        unsafe_allow_html=True
+    )
 
 # ── Estado da sessão ──────────────────────────────────────────────────────────
-if "cadastrado" not in st.session_state:
-    st.session_state.cadastrado = False
-if "link_proprio" not in st.session_state:
-    st.session_state.link_proprio = ""
+if "cadastrado"    not in st.session_state: st.session_state.cadastrado    = False
+if "link_proprio"  not in st.session_state: st.session_state.link_proprio  = ""
 
 # ── Formulário ────────────────────────────────────────────────────────────────
 if not st.session_state.cadastrado:
@@ -228,19 +239,20 @@ if not st.session_state.cadastrado:
 
     if st.button("✅ Enviar cadastro"):
         erros = []
-        if not nome.strip():    erros.append("Nome é obrigatório.")
-        if not cpf.strip():     erros.append("CPF é obrigatório.")
-        if not sexo:            erros.append("Selecione o sexo.")
-        if not email.strip():   erros.append("E-mail é obrigatório.")
-        if not whatsapp.strip():erros.append("WhatsApp é obrigatório.")
+        if not nome.strip():     erros.append("Nome é obrigatório.")
+        if not cpf.strip():      erros.append("CPF é obrigatório.")
+        if not sexo:             erros.append("Selecione o sexo.")
+        if not email.strip():    erros.append("E-mail é obrigatório.")
+        if not whatsapp.strip(): erros.append("WhatsApp é obrigatório.")
 
         if erros:
             for e in erros:
                 st.error(e)
         else:
             try:
+                # Salva a URL exata recebida (ou vazio se não veio por indicação)
                 salvar_cadastro(
-                    url_indicacao = ref_url or "",
+                    url_indicacao = url_indicacao_recebida,
                     nome          = nome.strip(),
                     cpf           = formatar_cpf(cpf),
                     sexo          = sexo,
@@ -250,17 +262,15 @@ if not st.session_state.cadastrado:
                 # Gera link único para esta pessoa compartilhar
                 novo_id = str(uuid.uuid4())[:8]
                 st.session_state.link_proprio = f"{BASE_URL}?ref={novo_id}"
-                st.session_state.cadastrado = True
+                st.session_state.cadastrado   = True
                 st.rerun()
             except Exception as e:
                 st.error(f"Erro ao salvar: {e}")
 
 # ── Tela pós-cadastro ─────────────────────────────────────────────────────────
 else:
-    link = st.session_state.link_proprio
-    msg_wpp = quote(
-        f"Olá! Me cadastrei e quero te indicar. Acesse pelo meu link: {link}"
-    )
+    link    = st.session_state.link_proprio
+    msg_wpp = quote(f"Olá! Me cadastrei e quero te indicar. Acesse pelo meu link: {link}")
     wpp_url = f"https://wa.me/?text={msg_wpp}"
 
     st.markdown('<div class="sucesso">🎉 Cadastro realizado com sucesso!</div>', unsafe_allow_html=True)
@@ -268,10 +278,17 @@ else:
     st.markdown("""
         <div class="link-titulo">🔗 Seu link de indicação</div>
         <p style="color:rgba(255,255,255,0.55);font-size:0.82rem;margin-bottom:0.8rem;">
-            Compartilhe este link. Quando alguém se cadastrar por ele, você será identificado como indicador.
+            Compartilhe este link. Quando alguém se cadastrar por ele,
+            o seu link será salvo como <strong style="color:#a5b4fc">url_indicacao</strong> no banco.
         </p>
     """, unsafe_allow_html=True)
-    st.markdown(f'<div class="link-box"><div class="link-titulo">Link</div><div class="link-url">{link}</div></div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="link-box">'
+        f'<div class="link-titulo">Link</div>'
+        f'<div class="link-url">{link}</div>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
     st.code(link, language=None)
     st.markdown(
         f'<a class="wpp-btn" href="{wpp_url}" target="_blank">📲 Compartilhar no WhatsApp</a>',
@@ -279,7 +296,7 @@ else:
     )
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🔄 Novo cadastro"):
-        st.session_state.cadastrado = False
+        st.session_state.cadastrado   = False
         st.session_state.link_proprio = ""
         st.rerun()
 
