@@ -23,15 +23,19 @@ def get_conn():
         user=USER, password=PASSWORD, sslmode=SSL_MODE
     )
 
-def salvar_cadastro(url_indicacao, ref_proprio, nome, cpf, sexo, email, whatsapp):
+def salvar_cadastro(id_ref_proprio, url_indicacao, nome, cpf, sexo, email, whatsapp):
+    """
+    id_ref_proprio → ref único gerado para ESTA pessoa (aparece no link dela)
+    url_indicacao  → ref de quem a indicou (vazio se veio direto)
+    """
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO cad_contato_indicacao
-            (url_indicacao, nome, cpf, sexo, email, whatsapp, data_hora_cadastro)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+            (id_ref_proprio, url_indicacao, nome, cpf, sexo, email, whatsapp, data_hora_cadastro)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """, (
-        ref_proprio,   # salva o ref PRÓPRIO em url_indicacao
+        id_ref_proprio, url_indicacao,
         nome, cpf, sexo, email, whatsapp,
         datetime.now(FUSO_BRASIL)
     ))
@@ -62,11 +66,7 @@ section[data-testid="stSidebar"] { display: none; }
 }
 .titulo { font-family: 'Space Mono', monospace; font-size: 1.7rem; font-weight: 700; color: #fff; text-align: center; letter-spacing: -1px; margin-bottom: 0.3rem; }
 .subtitulo { color: rgba(255,255,255,0.5); text-align: center; font-size: 0.88rem; margin-bottom: 2rem; }
-.ref-badge {
-    background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.5);
-    border-radius: 8px; padding: 0.6rem 1rem; font-family: 'Space Mono', monospace;
-    font-size: 0.78rem; color: #a5b4fc; text-align: center; margin-bottom: 1.5rem; word-break: break-all;
-}
+.ref-badge { background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.5); border-radius: 8px; padding: 0.6rem 1rem; font-family: 'Space Mono', monospace; font-size: 0.78rem; color: #a5b4fc; text-align: center; margin-bottom: 1.5rem; word-break: break-all; }
 .link-box { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.4); border-radius: 12px; padding: 1.2rem; margin: 1rem 0; }
 .link-titulo { color: #6ee7b7; font-size: 0.8rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 0.5rem; }
 .link-url { font-family: 'Space Mono', monospace; font-size: 0.82rem; color: #fff; word-break: break-all; line-height: 1.5; }
@@ -82,9 +82,9 @@ hr { border-color: rgba(255,255,255,0.1); margin: 1.5rem 0; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Lê parâmetros da URL ──────────────────────────────────────────────────────
+# ── Lê ?ref= da URL (ref de quem enviou o link) ───────────────────────────────
 params        = st.query_params
-ref_indicador = params.get("ref", None)  # ref de quem enviou o link (pode ser None)
+ref_indicador = params.get("ref", None)  # ref de quem me indicou
 
 # ── Layout ────────────────────────────────────────────────────────────────────
 st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -124,18 +124,18 @@ if not st.session_state.cadastrado:
                 st.error(e)
         else:
             try:
-                # Gera ref único desta pessoa — será o link que ela vai compartilhar
+                # Ref único gerado para ESTA pessoa — é o código do link dela
                 novo_ref  = str(uuid.uuid4())[:8]
                 novo_link = f"{BASE_URL}?ref={novo_ref}"
 
                 salvar_cadastro(
-                    url_indicacao = ref_indicador or "",  # quem me indicou (não usado no INSERT)
-                    ref_proprio   = novo_ref,             # meu ref → salvo em url_indicacao
-                    nome          = nome.strip(),
-                    cpf           = formatar_cpf(cpf),
-                    sexo          = sexo,
-                    email         = email.strip(),
-                    whatsapp      = formatar_whatsapp(whatsapp)
+                    id_ref_proprio = novo_ref,           # ref desta pessoa → vai no link dela
+                    url_indicacao  = ref_indicador or "",# ref de quem a indicou (ou vazio)
+                    nome           = nome.strip(),
+                    cpf            = formatar_cpf(cpf),
+                    sexo           = sexo,
+                    email          = email.strip(),
+                    whatsapp       = formatar_whatsapp(whatsapp)
                 )
 
                 st.session_state.link_proprio = novo_link
