@@ -23,15 +23,15 @@ def get_conn():
         user=USER, password=PASSWORD, sslmode=SSL_MODE
     )
 
-def salvar_cadastro(url_indicacao, id_ref_proprio, nome, cpf, sexo, email, whatsapp):
+def salvar_cadastro(url_indicacao, nome, cpf, sexo, email, whatsapp):
     conn = get_conn()
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO cad_contato_indicacao
-            (url_indicacao, id_ref_proprio, nome, cpf, sexo, email, whatsapp, data_hora_cadastro)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            (url_indicacao, nome, cpf, sexo, email, whatsapp, data_hora_cadastro)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
     """, (
-        url_indicacao, id_ref_proprio, nome, cpf, sexo, email, whatsapp,
+        url_indicacao, nome, cpf, sexo, email, whatsapp,
         datetime.now(FUSO_BRASIL)
     ))
     conn.commit()
@@ -192,19 +192,21 @@ hr { border-color: rgba(255,255,255,0.1); margin: 1.5rem 0; }
 
 # ── Lê parâmetros da URL ──────────────────────────────────────────────────────
 params = st.query_params
-ref_id = params.get("ref", None)   # ref de quem indicou (vem na URL)
+ref_id = params.get("ref", None)  # ref de quem indicou (vem na URL)
 
-# URL exata recebida — será salva em url_indicacao
-url_indicacao_recebida = f"{BASE_URL}?ref={ref_id}" if ref_id else ""
+# O que será salvo em url_indicacao:
+# - Se veio por link de indicação → salva o ref_id de quem indicou
+# - Se acessou direto → salva vazio
+url_indicacao_salvar = ref_id if ref_id else ""
 
 # ── Layout ────────────────────────────────────────────────────────────────────
 st.markdown('<div class="card">', unsafe_allow_html=True)
 st.markdown('<div class="titulo">📋 Cadastro</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">Preencha seus dados para se cadastrar</div>', unsafe_allow_html=True)
 
-if url_indicacao_recebida:
+if ref_id:
     st.markdown(
-        f'<div class="ref-badge">🔗 Indicado por: {url_indicacao_recebida}</div>',
+        f'<div class="ref-badge">🔗 Indicado por: {BASE_URL}?ref={ref_id}</div>',
         unsafe_allow_html=True
     )
 
@@ -236,18 +238,17 @@ if not st.session_state.cadastrado:
                 st.error(e)
         else:
             try:
-                # Gera o ref único desta pessoa para compartilhar
-                novo_ref = str(uuid.uuid4())[:8]
+                # Gera ref único desta pessoa para ela compartilhar
+                novo_ref  = str(uuid.uuid4())[:8]
                 novo_link = f"{BASE_URL}?ref={novo_ref}"
 
                 salvar_cadastro(
-                    url_indicacao  = url_indicacao_recebida,   # quem me indicou
-                    id_ref_proprio = novo_ref,                  # meu ref único
-                    nome           = nome.strip(),
-                    cpf            = formatar_cpf(cpf),
-                    sexo           = sexo,
-                    email          = email.strip(),
-                    whatsapp       = formatar_whatsapp(whatsapp)
+                    url_indicacao = url_indicacao_salvar,  # ref_id de quem indicou (ou vazio)
+                    nome          = nome.strip(),
+                    cpf           = formatar_cpf(cpf),
+                    sexo          = sexo,
+                    email         = email.strip(),
+                    whatsapp      = formatar_whatsapp(whatsapp)
                 )
 
                 st.session_state.link_proprio = novo_link
